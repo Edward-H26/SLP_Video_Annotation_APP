@@ -10,9 +10,10 @@ type VideoPlayerContextType = {
   segments: TranscriptSegment[]
   setSegments: (segments: TranscriptSegment[]) => void
   seekTo: (time: number) => void
-  play: () => void
-  pause: () => void
   togglePlay: () => void
+  setCurrentTime: (t: number) => void
+  setIsPlaying: (p: boolean) => void
+  setVideoDuration: (d: number) => void
 }
 
 const VideoPlayerContext = createContext<VideoPlayerContextType | null>(null)
@@ -32,46 +33,18 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const play = useCallback(() => {
-    videoRef.current?.play()
-  }, [])
-
-  const pause = useCallback(() => {
-    videoRef.current?.pause()
-  }, [])
-
   const togglePlay = useCallback(() => {
-    if (videoRef.current?.paused) {
-      videoRef.current.play()
-    } else {
-      videoRef.current?.pause()
-    }
-  }, [])
-
-  useEffect(() => {
     const video = videoRef.current
     if (!video) return
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime)
+    if (video.paused) {
+      video.play()
+    } else {
+      video.pause()
     }
-    const handleDurationChange = () => {
-      setDuration(video.duration)
-    }
-    const handlePlay = () => setIsPlaying(true)
-    const handlePause = () => setIsPlaying(false)
+  }, [])
 
-    video.addEventListener("timeupdate", handleTimeUpdate)
-    video.addEventListener("durationchange", handleDurationChange)
-    video.addEventListener("play", handlePlay)
-    video.addEventListener("pause", handlePause)
-
-    return () => {
-      video.removeEventListener("timeupdate", handleTimeUpdate)
-      video.removeEventListener("durationchange", handleDurationChange)
-      video.removeEventListener("play", handlePlay)
-      video.removeEventListener("pause", handlePause)
-    }
+  const setVideoDuration = useCallback((d: number) => {
+    if (d && isFinite(d) && d > 0) setDuration(d)
   }, [])
 
   useEffect(() => {
@@ -111,9 +84,10 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
         segments,
         setSegments,
         seekTo,
-        play,
-        pause,
         togglePlay,
+        setCurrentTime,
+        setIsPlaying,
+        setVideoDuration,
       }}
     >
       {children}

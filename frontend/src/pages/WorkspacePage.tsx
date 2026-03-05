@@ -111,7 +111,7 @@ function WorkspaceContent() {
                 <p className="text-sm mt-1">Please try uploading again</p>
               </div>
             ) : (
-              <VideoPlayer videoUrl={getVideoStreamUrl(video.id)} />
+              <VideoPlayer videoUrl={getVideoStreamUrl(video.id)} videoDuration={video.duration} />
             )}
           </div>
           {video?.status === "ready" && <TimelineView annotations={annotations} />}

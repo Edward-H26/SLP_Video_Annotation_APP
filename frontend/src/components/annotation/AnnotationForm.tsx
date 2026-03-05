@@ -44,7 +44,8 @@ export default function AnnotationForm({ videoId, onCreated }: AnnotationFormPro
       <div className="flex items-center gap-2">
         <span className="text-xs text-gray-400 font-mono">
           @{Math.floor(currentTime / 60).toString().padStart(2, "0")}:
-          {Math.floor(currentTime % 60).toString().padStart(2, "0")}
+          {Math.floor(currentTime % 60).toString().padStart(2, "0")}.
+          {Math.floor((currentTime % 1) * 10)}
         </span>
         <div className="flex gap-1">
           {ANNOTATION_TYPES.map((t) => (

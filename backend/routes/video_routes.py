@@ -131,26 +131,34 @@ async def streamVideo(videoId: str, range: str = Header(None)):
         raise HTTPException(status_code=404, detail="Video file not found")
 
     fileSize = os.path.getsize(filePath)
-    start, end = 0, fileSize - 1
+    mimeType = video.get("mimeType", "video/mp4")
 
-    if range:
-        rangeValue = range.strip().split("=")[1]
-        rangeValues = rangeValue.split("-")
-        start = int(rangeValues[0]) if rangeValues[0] else start
-        end = int(rangeValues[1]) if len(rangeValues) > 1 and rangeValues[1] else end
+    if not range:
+        return StreamingResponse(
+            getVideoStream(filePath, 0, fileSize - 1),
+            media_type=mimeType,
+            headers={
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(fileSize),
+            },
+            status_code=200,
+        )
+
+    start, end = 0, fileSize - 1
+    rangeValue = range.strip().split("=")[1]
+    rangeValues = rangeValue.split("-")
+    start = int(rangeValues[0]) if rangeValues[0] else start
+    end = int(rangeValues[1]) if len(rangeValues) > 1 and rangeValues[1] else end
 
     contentLength = end - start + 1
-    headers = {
-        "Content-Range": f"bytes {start}-{end}/{fileSize}",
-        "Accept-Ranges": "bytes",
-        "Content-Length": str(contentLength),
-    }
-
-    mimeType = video.get("mimeType", "video/mp4")
     return StreamingResponse(
         getVideoStream(filePath, start, end),
         media_type=mimeType,
-        headers=headers,
+        headers={
+            "Content-Range": f"bytes {start}-{end}/{fileSize}",
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(contentLength),
+        },
         status_code=206,
     )
 

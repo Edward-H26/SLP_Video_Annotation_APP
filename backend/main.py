@@ -40,6 +40,23 @@ app.include_router(transcriptRouter, prefix="/api/transcripts", tags=["transcrip
 app.include_router(annotationRouter, prefix="/api/annotations", tags=["annotations"])
 app.include_router(exportRouter, prefix="/api/export", tags=["export"])
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+
+if os.path.isdir(STATIC_DIR):
+    assetsDir = os.path.join(STATIC_DIR, "assets")
+    if os.path.isdir(assetsDir):
+        app.mount("/assets", StaticFiles(directory=assetsDir), name="static-assets")
+
+    @app.get("/{fullPath:path}")
+    async def serveFrontend(fullPath: str):
+        filePath = os.path.join(STATIC_DIR, fullPath)
+        if os.path.isfile(filePath):
+            return FileResponse(filePath)
+        return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",

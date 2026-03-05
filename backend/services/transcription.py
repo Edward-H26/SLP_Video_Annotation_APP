@@ -4,7 +4,7 @@ from config.settings import openaiConfig
 from uuid import uuid4
 from services.video_processing import splitAudioIntoChunks, cleanupChunks
 
-TRANSCRIPTION_MODEL = os.getenv("TRANSCRIPTION_MODEL", "gpt-4o-transcribe")
+TRANSCRIPTION_MODEL = os.getenv("TRANSCRIPTION_MODEL", "gpt-4o-transcribe-diarize")
 
 
 def parseTranscriptionResponse(transcription, timeOffset: float = 0) -> list[dict]:

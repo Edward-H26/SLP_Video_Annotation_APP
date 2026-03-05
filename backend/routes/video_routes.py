@@ -63,8 +63,6 @@ async def processVideo(videoId: str, filePath: str):
             {"$set": {"status": "ready", "updatedAt": now}}
         )
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         await videosCollection.update_one(
             {"_id": ObjectId(videoId)},
             {"$set": {"status": "error", "errorMessage": str(e)}}
@@ -102,21 +100,11 @@ async def uploadVideo(projectId: str, backgroundTasks: BackgroundTasks, file: Up
         "updatedAt": now
     }
     result = await collection.insert_one(doc)
-    videoId = str(result.inserted_id)
     doc["_id"] = result.inserted_id
 
-    backgroundTasks.add_task(processVideo, videoId, filePath)
+    backgroundTasks.add_task(processVideo, str(result.inserted_id), filePath)
 
     return serializeVideo(doc)
-
-
-@router.get("/{videoId}")
-async def getVideo(videoId: str):
-    collection = Database.get_videos_collection()
-    video = await collection.find_one({"_id": ObjectId(videoId)})
-    if not video:
-        raise HTTPException(status_code=404, detail="Video not found")
-    return serializeVideo(video)
 
 
 def getVideoStream(filePath: str, start: int, end: int):
@@ -172,6 +160,15 @@ async def listProjectVideos(projectId: str):
     collection = Database.get_videos_collection()
     videos = await collection.find({"projectId": ObjectId(projectId)}).sort("createdAt", -1).to_list(100)
     return [serializeVideo(v) for v in videos]
+
+
+@router.get("/{videoId}")
+async def getVideo(videoId: str):
+    collection = Database.get_videos_collection()
+    video = await collection.find_one({"_id": ObjectId(videoId)})
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return serializeVideo(video)
 
 
 @router.delete("/{videoId}")

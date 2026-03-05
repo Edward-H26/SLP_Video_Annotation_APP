@@ -13,7 +13,6 @@ class CommonSettings(BaseSettings):
     APP_NAME: str = "Video Annotation Platform"
     DEBUG_MODE: bool = True
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_API_BASE_URL: str = os.getenv("OPENAI_API_BASE_URL", "")
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "data")
 
 

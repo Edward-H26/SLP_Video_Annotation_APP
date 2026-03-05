@@ -26,8 +26,12 @@ export default function AnnotationPanel({ videoId, annotations, setAnnotations }
       <AnnotationForm videoId={videoId} onCreated={handleCreated} />
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {annotations.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
-            No annotations yet
+          <div className="flex flex-col items-center justify-center h-40 text-center px-6">
+            <p className="text-gray-400 text-sm mb-2">No annotations yet</p>
+            <p className="text-gray-300 text-xs leading-relaxed">
+              Pause the video at any moment and use the form above to add observations,
+              categorize with tags, bookmark key moments, or label speakers.
+            </p>
           </div>
         ) : (
           annotations.map((annotation) => (

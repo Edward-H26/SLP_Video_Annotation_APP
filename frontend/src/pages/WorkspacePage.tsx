@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import AppLayout from "@/components/layout/AppLayout"
 import Header from "@/components/layout/Header"
 import VideoPlayer from "@/components/video/VideoPlayer"
@@ -10,6 +10,7 @@ import TimelineView from "@/components/timeline/TimelineView"
 import SearchBar from "@/components/search/SearchBar"
 import ExportModal from "@/components/export/ExportModal"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import Button from "@/components/ui/Button"
 import { VideoPlayerProvider, useVideoPlayer } from "@/contexts/VideoPlayerContext"
 import { fetchProject } from "@/api/project-api"
 import { uploadVideo, fetchVideo, fetchProjectVideos, getVideoStreamUrl } from "@/api/video-api"
@@ -19,6 +20,7 @@ import type { Project, Video, Annotation } from "@/types"
 
 function WorkspaceContent() {
   const { projectId } = useParams<{ projectId: string }>()
+  const navigate = useNavigate()
   const { setSegments } = useVideoPlayer()
   const [project, setProject] = useState<Project | null>(null)
   const [video, setVideo] = useState<Video | null>(null)
@@ -106,9 +108,22 @@ function WorkspaceContent() {
                 <p className="text-gray-400 text-sm mt-1">This may take a few minutes</p>
               </div>
             ) : video.status === "error" ? (
-              <div className="flex flex-col items-center justify-center h-full text-red-500">
-                <p className="font-medium">Processing failed</p>
-                <p className="text-sm mt-1">Please try uploading again</p>
+              <div className="flex flex-col items-center justify-center h-full">
+                <p className="font-medium text-red-500">Processing failed</p>
+                <p className="text-sm text-gray-500 mt-1 mb-4">
+                  Something went wrong while processing your video.
+                </p>
+                <div className="flex gap-3">
+                  <Button variant="secondary" onClick={() => {
+                    setVideo(null)
+                    setAnnotations([])
+                  }}>
+                    Upload a Different Video
+                  </Button>
+                  <Button onClick={() => navigate("/")}>
+                    Back to Projects
+                  </Button>
+                </div>
               </div>
             ) : (
               <VideoPlayer videoUrl={getVideoStreamUrl(video.id)} videoDuration={video.duration} />

@@ -1,5 +1,9 @@
-import moviepy.editor as mp
+import imageio_ffmpeg
 import os
+
+os.environ["IMAGEIO_FFMPEG_EXE"] = imageio_ffmpeg.get_ffmpeg_exe()
+
+import moviepy.editor as mp
 import math
 
 MAX_CHUNK_SIZE_MB = 24

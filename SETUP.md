@@ -81,42 +81,29 @@ The frontend will be available at `http://localhost:5173`.
 
 ## Render Deployment
 
-### Backend (Web Service)
+The platform deploys as a single monorepo web service on Render. The build step compiles the frontend and bundles it into the backend, which serves both the API and the static frontend assets.
 
-1. Create a new Web Service on Render
-2. Connect your repository
-3. Set root directory to `backend`
-4. Build command: `pip install -r requirements.txt`
-5. Start command: `gunicorn main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT`
-6. Set environment variables:
+A `render.yaml` blueprint is included in the repository for one-click deployment.
+
+### Web Service (Monorepo)
+
+1. Create a new Web Service on Render and connect your repository
+2. Render will auto-detect `render.yaml` and configure the service, or set manually:
+   - **Build command**: `cd frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt`
+   - **Start command**: `cd backend && gunicorn main:app -w 1 -k uvicorn.workers.UvicornWorker --timeout 600 --bind 0.0.0.0:$PORT`
+3. Set environment variables:
    - `MONGODB_URL`: Your MongoDB Atlas connection string
    - `OPENAI_API_KEY`: Your OpenAI API key from platform.openai.com
-   - `OPENAI_API_BASE_URL`: Leave empty for standard OpenAI API, or set to your gateway URL
-   - `UPLOAD_DIR`: `/tmp/data`
-   - `TRANSCRIPTION_MODEL`: `gpt-4o-transcribe` (recommended) or `whisper-1`
-   - `ALLOWED_ORIGINS`: Your frontend Render URL (e.g., `https://video-annotation-frontend.onrender.com`)
+   - `UPLOAD_DIR`: `/tmp/data` (ephemeral storage; files are lost on redeploy)
+   - `TRANSCRIPTION_MODEL`: `gpt-4o-transcribe-diarize` (default, includes speaker ID) or `whisper-1`
    - `PYTHON_VERSION`: `3.11.11`
+   - `NODE_VERSION`: `20.11.0`
 
-### Frontend (Static Site)
-
-1. Create a new Static Site on Render
-2. Connect your repository
-3. Set root directory to `frontend`
-4. Build command: `npm install && npm run build`
-5. Publish directory: `dist`
-6. Add rewrite rule: `/* -> /index.html` (for client-side routing)
-7. Before deploying, update `frontend/.env.production` with your backend URL:
-   ```
-   VITE_API_URL=https://your-backend-name.onrender.com
-   ```
-
-## Docker Compose (Alternative)
-
-```bash
-docker-compose up --build
-```
-
-This starts MongoDB, backend (port 8321), and frontend (port 3000).
+**Important notes:**
+- The gunicorn timeout is set to 600 seconds to allow long transcription jobs to complete without the worker being killed.
+- A single worker (`-w 1`) is used to conserve memory and ensure background transcription tasks are not lost if a worker is recycled.
+- On startup, the backend automatically marks any videos stuck in `uploading`, `processing`, or `transcribing` status as `error`, so they can be retried instead of remaining stuck forever.
+- Uploaded video files are stored in `/tmp/data` (ephemeral). Files are lost on every redeploy. For persistent storage, consider Render's persistent disk or an external service like S3.
 
 ## Environment Variables
 
@@ -124,8 +111,7 @@ This starts MongoDB, backend (port 8321), and frontend (port 3000).
 |----------|-------------|---------|
 | MONGODB_URL | MongoDB connection string | mongodb://localhost:27017 |
 | OPENAI_API_KEY | OpenAI API key | (required) |
-| OPENAI_API_BASE_URL | Custom OpenAI base URL | (empty, uses api.openai.com) |
-| TRANSCRIPTION_MODEL | Transcription model | gpt-4o-transcribe |
+| TRANSCRIPTION_MODEL | Transcription model | gpt-4o-transcribe-diarize |
 | HOST | Backend host | 0.0.0.0 |
 | PORT | Backend port | 8321 |
 | DEBUG_MODE | Enable hot reload | true |
@@ -151,3 +137,11 @@ The platform supports videos up to 8GB and 30+ minutes in length:
 - Audio files over 24MB are automatically split into 10-minute chunks
 - Each chunk is transcribed separately and timestamps are adjusted
 - Chunks are cleaned up after transcription
+- All CPU-heavy moviepy operations run in a thread pool via `asyncio.to_thread()` to avoid blocking the event loop
+- The OpenAI client uses `AsyncOpenAI` so transcription API calls are non-blocking
+
+## Error Recovery
+
+- **Crash recovery**: On startup, the backend marks any videos stuck in `uploading`, `processing`, or `transcribing` as `error`. This handles cases where a server restart or worker kill interrupted processing.
+- **Frontend polling timeout**: The frontend polls video status every 2 seconds for up to 10 minutes. If transcription has not completed by then, it stops polling and shows an error.
+- **Retry transcription**: Failed videos show a "Retry Transcription" button that re-triggers the processing pipeline without requiring a re-upload (as long as the video file still exists on disk).

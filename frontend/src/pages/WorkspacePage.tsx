@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import AppLayout from "@/components/layout/AppLayout"
 import Header from "@/components/layout/Header"
 import VideoPlayer from "@/components/video/VideoPlayer"
@@ -20,7 +20,6 @@ import type { Project, Video, Annotation } from "@/types"
 
 function WorkspaceContent() {
   const { projectId } = useParams<{ projectId: string }>()
-  const navigate = useNavigate()
   const { setSegments } = useVideoPlayer()
   const [project, setProject] = useState<Project | null>(null)
   const [video, setVideo] = useState<Video | null>(null)

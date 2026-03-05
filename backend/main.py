@@ -18,6 +18,17 @@ db = Database()
 async def lifespan(app: FastAPI):
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     await db.connect_to_database()
+
+    videosCollection = Database.get_videos_collection()
+    stuckStatuses = ["uploading", "processing", "transcribing"]
+    result = await videosCollection.update_many(
+        {"status": {"$in": stuckStatuses}},
+        {"$set": {
+            "status": "error",
+            "errorMessage": "Server restarted during processing. Please retry transcription."
+        }}
+    )
+
     yield
     await db.close_database_connection()
 

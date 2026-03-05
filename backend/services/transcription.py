@@ -87,7 +87,7 @@ async def transcribeSingleFile(client, audioPath: str, timeOffset: float = 0) ->
         else:
             kwargs["response_format"] = "json"
 
-        transcription = client.audio.transcriptions.create(**kwargs)
+        transcription = await client.audio.transcriptions.create(**kwargs)
 
     return parseTranscriptionResponse(transcription, timeOffset)
 

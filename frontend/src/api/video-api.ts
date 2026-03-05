@@ -39,3 +39,14 @@ export async function deleteVideo(videoId: string): Promise<{ message: string }>
   if (!response.ok) throw new Error("Failed to delete video")
   return response.json()
 }
+
+export async function retranscribeVideo(videoId: string): Promise<Video> {
+  const response = await fetch(`${API_BASE_URL}/api/videos/${videoId}/retranscribe`, {
+    method: "POST",
+  })
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.detail || "Failed to retry transcription")
+  }
+  return response.json()
+}

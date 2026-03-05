@@ -13,7 +13,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import Button from "@/components/ui/Button"
 import { VideoPlayerProvider, useVideoPlayer } from "@/contexts/VideoPlayerContext"
 import { fetchProject } from "@/api/project-api"
-import { uploadVideo, fetchVideo, fetchProjectVideos, getVideoStreamUrl } from "@/api/video-api"
+import { uploadVideo, fetchVideo, fetchProjectVideos, getVideoStreamUrl, retranscribeVideo } from "@/api/video-api"
 import { fetchTranscript } from "@/api/transcript-api"
 import { fetchAnnotations } from "@/api/annotation-api"
 import type { Project, Video, Annotation } from "@/types"
@@ -30,6 +30,9 @@ function WorkspaceContent() {
   const [activeTab, setActiveTab] = useState<"transcript" | "annotations">("transcript")
   const [isExportOpen, setIsExportOpen] = useState(false)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pollingStartRef = useRef<number | null>(null)
+
+  const POLLING_TIMEOUT_MS = 10 * 60 * 1000
 
   useEffect(() => {
     if (!projectId) return
@@ -51,7 +54,15 @@ function WorkspaceContent() {
     if (!video) return
     if (video.status === "ready" || video.status === "error") return
 
+    pollingStartRef.current = Date.now()
+
     pollingRef.current = setInterval(async () => {
+      if (pollingStartRef.current && Date.now() - pollingStartRef.current > POLLING_TIMEOUT_MS) {
+        if (pollingRef.current) clearInterval(pollingRef.current)
+        setVideo((prev) => prev ? { ...prev, status: "error" } : prev)
+        return
+      }
+
       const updated = await fetchVideo(video.id)
       setVideo(updated)
       if (updated.status === "ready") {
@@ -87,6 +98,12 @@ function WorkspaceContent() {
     setIsUploading(false)
   }
 
+  const handleRetranscribe = async () => {
+    if (!video) return
+    const updated = await retranscribeVideo(video.id)
+    setVideo(updated)
+  }
+
   const isProcessing = video && !["ready", "error"].includes(video.status)
 
   return (
@@ -120,8 +137,8 @@ function WorkspaceContent() {
                   }}>
                     Upload a Different Video
                   </Button>
-                  <Button onClick={() => navigate("/")}>
-                    Back to Projects
+                  <Button onClick={handleRetranscribe}>
+                    Retry Transcription
                   </Button>
                 </div>
               </div>

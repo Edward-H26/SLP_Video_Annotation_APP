@@ -179,6 +179,29 @@ async def getVideo(videoId: str):
     return serializeVideo(video)
 
 
+@router.post("/{videoId}/retranscribe")
+async def retranscribeVideo(videoId: str, backgroundTasks: BackgroundTasks):
+    collection = Database.get_videos_collection()
+    video = await collection.find_one({"_id": ObjectId(videoId)})
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    filePath = video.get("filePath", "")
+    if not filePath or not os.path.exists(filePath):
+        raise HTTPException(status_code=400, detail="Video file no longer exists on disk. Please re-upload.")
+
+    transcriptsCollection = Database.get_transcripts_collection()
+    await transcriptsCollection.delete_many({"videoId": ObjectId(videoId)})
+
+    await collection.update_one(
+        {"_id": ObjectId(videoId)},
+        {"$set": {"status": "uploading", "errorMessage": ""}}
+    )
+
+    backgroundTasks.add_task(processVideo, videoId, filePath)
+    return serializeVideo({**video, "status": "uploading", "errorMessage": ""})
+
+
 @router.delete("/{videoId}")
 async def deleteVideo(videoId: str):
     collection = Database.get_videos_collection()

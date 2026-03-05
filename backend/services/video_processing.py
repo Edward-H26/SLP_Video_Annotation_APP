@@ -1,3 +1,4 @@
+import asyncio
 import imageio_ffmpeg
 import os
 
@@ -10,7 +11,7 @@ MAX_CHUNK_SIZE_MB = 24
 CHUNK_DURATION_SECONDS = 600
 
 
-async def extractAudio(videoPath: str) -> str:
+def _extractAudioSync(videoPath: str) -> str:
     video = mp.VideoFileClip(videoPath)
     basePath = os.path.splitext(videoPath)[0]
     audioPath = f"{basePath}.mp3"
@@ -19,14 +20,14 @@ async def extractAudio(videoPath: str) -> str:
     return audioPath
 
 
-async def getVideoDuration(videoPath: str) -> float:
+def _getVideoDurationSync(videoPath: str) -> float:
     video = mp.VideoFileClip(videoPath)
     duration = video.duration
     video.close()
     return duration
 
 
-async def splitAudioIntoChunks(audioPath: str) -> list[str]:
+def _splitAudioIntoChunksSync(audioPath: str) -> list[str]:
     fileSizeMb = os.path.getsize(audioPath) / (1024 * 1024)
 
     if fileSizeMb <= MAX_CHUNK_SIZE_MB:
@@ -48,6 +49,18 @@ async def splitAudioIntoChunks(audioPath: str) -> list[str]:
 
     audio.close()
     return chunkPaths
+
+
+async def extractAudio(videoPath: str) -> str:
+    return await asyncio.to_thread(_extractAudioSync, videoPath)
+
+
+async def getVideoDuration(videoPath: str) -> float:
+    return await asyncio.to_thread(_getVideoDurationSync, videoPath)
+
+
+async def splitAudioIntoChunks(audioPath: str) -> list[str]:
+    return await asyncio.to_thread(_splitAudioIntoChunksSync, audioPath)
 
 
 async def cleanupChunks(chunkPaths: list[str], originalPath: str):
